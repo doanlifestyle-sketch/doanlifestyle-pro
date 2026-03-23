@@ -1,1 +1,34 @@
+import streamlit as st
+import asyncio
+import edge_tts
+
+st.set_page_config(page_title="Doanlifestyle Pro", layout="wide")
+
+st.markdown("""
+    <style>
+    .stApp { background-color: #f5ece2; }
+    .stButton>button { background-color: #7d5a44; color: white; border-radius: 15px; font-weight: bold; width: 100%; }
+    h1, h2 { color: #5a3e2b; }
+    </style>
+    """, unsafe_allow_html=True)
+
+VOICES = {"Hoài Nam (Sâu lắng)": "vi-VN-HoaiNamNeural", "Nam Minh (Truyền cảm)": "vi-VN-NamMinhNeural"}
+
+async def tts_engine(text, voice, rate, pitch):
+    comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+    await comm.save("thanh.mp3")
+
+st.title("🎙️ Doanlifestyle Pro Studio")
+v = st.selectbox("Giọng đọc:", list(VOICES.keys()))
+e = st.radio("Cảm xúc:", ["Sâu lắng", "Thành kính", "Quyền năng"], horizontal=True)
+if e == "Sâu lắng": r, p = "-15%", "-3Hz"
+elif e == "Thành kính": r, p = "-10%", "+0Hz"
+else: r, p = "+5%", "+2Hz"
+
+txt = st.text_area("Dán kịch bản Kinh Thánh tại đây...", height=300)
+if st.button("XUẤT BẢN ÂM THANH"):
+    if txt:
+        asyncio.run(tts_engine(txt, VOICES[v], r, p))
+        st.audio("thanh.mp3")
+        st.download_button("Tải MP3 về iPad", open("thanh.mp3", "rb"), "kinhthanh.mp3")
 
