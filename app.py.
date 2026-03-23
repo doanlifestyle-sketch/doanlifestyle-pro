@@ -1,0 +1,76 @@
+import streamlit as st
+import asyncio
+import edge_tts
+import os
+from datetime import datetime
+
+# Cấu hình giao diện Doanlifestyle Pro Studio
+st.set_page_config(page_title="Doanlifestyle Pro", layout="wide", page_icon="🎙️")
+
+# CSS tạo giao diện màu Kem/Nâu như ảnh mẫu của bạn
+st.markdown("""
+    <style>
+    .stApp { background-color: #f5ece2; }
+    .stButton>button { background-color: #7d5a44; color: white; border-radius: 12px; height: 3em; font-weight: bold; border: none; }
+    .stTextArea textarea { background-color: #ffffff; border-radius: 10px; border: 1px solid #d3c5b5; }
+    h1, h2, h3 { color: #5a3e2b; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Giọng đọc ưu tiên cho Nhạc Kinh Thánh
+VOICES = {
+    "Hoài Nam (Sâu lắng)": "vi-VN-HoaiNamNeural",
+    "Nam Minh (Truyền cảm)": "vi-VN-NamMinhNeural",
+    "Hoài My (Nhẹ nhàng)": "vi-VN-HoaiMyNeural"
+}
+
+def clean_script(text):
+    # Tự động dịch ký hiệu Kinh Thánh
+    replacements = {
+        "St ": "Sáng thế ký chương ",
+        "Xh ": "Xuất hành chương ",
+        "Tv ": "Thánh vịnh chương ",
+        "1:1": " một câu một",
+    }
+    for key, val in replacements.items():
+        text = text.replace(key, val)
+    return text
+
+async def generate_tts(text, voice, rate, pitch):
+    communicate = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch)
+    await communicate.save("output.mp3")
+
+# GIAO DIỆN NGƯỜI DÙNG
+st.title("🎙️ Doanlifestyle Pro Studio")
+st.write(f"📅 {datetime.now().strftime('%d/%m/%G')} | 🟢 Phiên bản Studio")
+
+col1, col2 = st.columns([1, 2], gap="large")
+
+with col1:
+    st.subheader("KHO GIỌNG AI")
+    selected_voice = st.selectbox("Chọn giọng đọc:", list(VOICES.keys()))
+    emotion = st.radio("Cảm xúc:", ["Tâm tình", "Sâu lắng", "Thành kính", "Quyền năng"])
+    
+    # Thiết lập thông số Đạo diễn
+    if emotion == "Sâu lắng": rate, pitch = "-15%", "-3Hz"
+    elif emotion == "Thành kính": rate, pitch = "-10%", "+0Hz"
+    elif emotion == "Quyền năng": rate, pitch = "+5%", "+2Hz"
+    else: rate, pitch = "-20%", "-5Hz"
+
+with col2:
+    st.subheader("TÁC GIẢ: Doanlifestyle")
+    raw_text = st.text_area("Dán nội dung kịch bản tại đây...", height=350)
+    
+    if st.button("XUẤT BẢN ÂM THANH"):
+        if raw_text:
+            cleaned_text = clean_script(raw_text)
+            with st.spinner("Đang đạo diễn giọng đọc..."):
+                asyncio.run(generate_tts(cleaned_text, VOICES[selected_voice], rate, pitch))
+                st.audio("output.mp3")
+                with open("output.mp3", "rb") as f:
+                    st.download_button("Tải file MP3 về máy", f, file_name="kinh_thanh_audio.mp3")
+        else:
+            st.error("Vui lòng nhập văn bản!")
+
+st.divider()
+st.caption("Ứng dụng được thiết kế bởi Doanlifestyle Studio")
